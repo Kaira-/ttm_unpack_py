@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #
 # ttm_unpack_py is a python-port of ttm_unpack by David Gow.
 
