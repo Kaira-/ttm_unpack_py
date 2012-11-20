@@ -31,13 +31,18 @@ import sys
 import os
 import stat
 import struct
+from array import array
 from UserString import MutableString
 
-decryptState = 0xdeadcafe;
+max_int = 4294967295
+decryptState = array("I") 
+decryptState.append(0xdeadcafe)
 
 def advanceDecryptor():
 	global decryptState
-	decryptState = decryptState * 7 + 3
+	global max_int
+	value = decryptState[0]*7+3
+	decryptState[0] = value % (max_int+1)
 
 def extractAll(fname):
 	global decryptState
@@ -55,6 +60,7 @@ def extractAll(fname):
 		sys.exit(-1)
 	
 	numfiles = 0
+	decryptState.append(decryptState[0])
 
 	while True:
 		#the following line produces faulty results for some reason
@@ -65,7 +71,7 @@ def extractAll(fname):
 		
 		#since fnameLen is supposed to be unsigned, let's do abs magic
 		fnameLen = abs(fnameLen)
-		fnameLen = fnameLen ^ decryptState
+		fnameLen = fnameLen ^ decryptState[0]
 		advanceDecryptor()
 
 		#read and decrypt the filename
@@ -75,8 +81,8 @@ def extractAll(fname):
 
 		fnameList = list(fname)
 
-		for i in range(0, fnameLen):	
-			fnameList[i] = chr(ord(fnameList[i]) ^ (decryptState & 0xFF))
+		for i in range(0, fnameLen):
+			fnameList[i] = chr(ord(fnameList[i]) ^ (decryptState[0] & 0xFF))
 			advanceDecryptor()
 
 			#hack to mkdir everything
@@ -89,11 +95,12 @@ def extractAll(fname):
 		print "Extracting " + "".join(fnameList) + "..."
 		#get file size
 		fsize = struct.unpack('I', pfile.read(uint32_t_size))[0]
-		fsize = fsize ^ decryptState
+		#sys.exit(1)
+		fsize = fsize ^ decryptState[0]
 		advanceDecryptor()
 
 		#save decryptor state since it's needed for restoring later
-		oldDecryptState = decryptState
+		decryptState[1] = decryptState[0]
 
 		try:
 			outFile = open("".join(fnameList), "wb")
@@ -108,11 +115,19 @@ def extractAll(fname):
 		#read and decrypt file
 		while idx != fsize:
 			c = pfile.read(char_size)
-			xorValue = str(decryptState)[(idx & 3)]
-			c = chr(ord(c) ^ ord(xorValue))
+			binary = bin(decryptState[0])[2:]
+			binvalues = []
+			binvalues.append(binary[0:7])
+			binvalues.append(binary[8:15])
+			binvalues.append(binary[16:23])
+			binvalues.append(binary[24:31])
+			xorValue = abs(int(binvalues[idx&3],2))
+			c = chr(ord(c) ^ xorValue)
 			outFile.write(c)
 			if (idx & 3) == 3:
+				print "Advancing Decryptor..."
 				advanceDecryptor()
+			print "Next Step... idx="+str(idx)+" fsize="+str(fsize)
 			idx += 1
 		outFile.close()
 		
@@ -120,7 +135,7 @@ def extractAll(fname):
 		# seems a bit weird, but seems to have been done
 		# to make sure the game has fast random-access
 		# to packed files
-		decryptState = oldDecryptState
+		decryptState[0] = decryptState[1]
 		numfiles = numfiles + 1
 	print "Extracted " + numfiles + " files!"
 		
