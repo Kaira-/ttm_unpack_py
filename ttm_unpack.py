@@ -29,6 +29,7 @@ import sys
 import os
 import stat
 import struct
+from UserString import MutableString
 
 decryptState = 0xdeadcafe;
 
@@ -41,12 +42,12 @@ def extractAll(fname):
 	pfile = open(fname, "rb")
 	#uint32_t has size of 4 bytes
 	uint32_t_size = 4
-	sig = struct.unpack('i', pfile.read(uint32_t_size))[0]
+	sig = struct.unpack('I', pfile.read(uint32_t_size))[0]
 	if sig != 1397966674:
 		print "Error: not a valid 'To the Moon' datafile"
 		sys.exit(-1)
 	
-	sig = struct.unpack('i', pfile.read(uint32_t_size))[0]
+	sig = struct.unpack('I', pfile.read(uint32_t_size))[0]
 	if sig != 16794689:
 		print "Error: not a valid 'To the Moon' datafile"
 		sys.exit(-1)
@@ -55,31 +56,35 @@ def extractAll(fname):
 
 	while True:
 		#the following line produces faulty results for some reason
-		fnameLen = struct.unpack('i', pfile.read(uint32_t_size))[0]
+		fnameLen = struct.unpack('I', pfile.read(uint32_t_size))[0]
 		#check for end of file
 		if fnameLen == "" or fnameLen == 0:
 			break
 		
+		#since fnameLen is supposed to be unsigned, let's do abs magic
+		fnameLen = abs(fnameLen)	
 		fnameLen = fnameLen ^ decryptState
 		advanceDecryptor()
 
 		#read and decrypt the filename
 		char_size = 1
-		fname = struct.unpack('s', pfile.read(char_size * fnameLen))[0]
+		fname = struct.unpack('@' + str(fnameLen) + 's', pfile.read(char_size * fnameLen))[0]
+	
+		fnameList = list(fname)
 		
-		for i in range(0, fnameLen):
-			fname[i] = fname[i] ^ (decryptState & 0xFF)
+		for i in range(0, fnameLen):	
+			fnameList[i] = chr(ord(fnameList[i]) ^ (decryptState & 0xFF))
 			advanceDecryptor()
 
 			#hack to mkdir everything
-			if fname[i] == '\\':
-				fname[i] = '\0'
-				os.mkdir(fname, stat.S_IRWXU)
-				fname[i] = '/'
+			if fnameList[i] == '\\':
+				fnameList[i] = '\0'
+				os.mkdir("".join(fnameList), stat.S_IRWXU)
+				fnameList[i] = '/'
 		
-		print "Extracting" + fname + "..."
+		print "Extracting" + "".join(fnameList) + "..."
 		#get file size
-		fsize = struct.unpack('i', pfile.read(uint32_t_size))[0]
+		fsize = struct.unpack('I', pfile.read(uint32_t_size))[0]
 		fsize = fsize ^ decryptState
 		advanceDecryptor()
 
@@ -87,7 +92,7 @@ def extractAll(fname):
 		oldDecryptState = decryptState
 
 		try:
-			outFile = open(fname, "wb")
+			outFile = open("".join(fnameList), "wb")
 		except IOError:
 			print "Error, could not create " + fname + "."
 			print "Check that you have write permissions to the current directory"
@@ -114,6 +119,7 @@ def extractAll(fname):
 	print "Extracted " + numfiles + " files!"
 		
 def main(argv):
+	fname = MutableString()
 	fname = "To the Moon.rgssad"
 	if len(argv) > 1:
 		fname = argv[1]
