@@ -33,15 +33,15 @@ import stat
 import struct
 from array import array
 
-max_int = 4294967295
+MAX_INT = 4294967295
 decryptState = array("I") 
 decryptState.append(0xdeadcafe)
 
 def advanceDecryptor():
 	global decryptState
-	global max_int
+	global MAX_INT
 	value = decryptState[0]*7+3
-	decryptState[0] = value % (max_int+1)
+	decryptState[0] = value % (MAX_INT + 1)
 
 def extractAll(fname):
 	global decryptState
