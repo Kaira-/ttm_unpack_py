@@ -124,9 +124,7 @@ def extractAll(fname):
 			c = chr(ord(c) ^ xorValue)
 			outFile.write(c)
 			if (idx & 3) == 3:
-				print "Advancing Decryptor..."
 				advanceDecryptor()
-			print "Next Step... idx="+str(idx)+" fsize="+str(fsize)
 			idx += 1
 		outFile.close()
 		
