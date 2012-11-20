@@ -62,27 +62,29 @@ def extractAll(fname):
 			break
 		
 		#since fnameLen is supposed to be unsigned, let's do abs magic
-		fnameLen = abs(fnameLen)	
+		fnameLen = abs(fnameLen)
 		fnameLen = fnameLen ^ decryptState
 		advanceDecryptor()
 
 		#read and decrypt the filename
 		char_size = 1
-		fname = struct.unpack('@' + str(fnameLen) + 's', pfile.read(char_size * fnameLen))[0]
-	
+		fname = struct.unpack(str(fnameLen) + 's',
+					pfile.read(char_size * fnameLen))[0]
+
 		fnameList = list(fname)
-		
+
 		for i in range(0, fnameLen):	
 			fnameList[i] = chr(ord(fnameList[i]) ^ (decryptState & 0xFF))
 			advanceDecryptor()
 
 			#hack to mkdir everything
 			if fnameList[i] == '\\':
-				fnameList[i] = '\0'
-				os.mkdir("".join(fnameList), stat.S_IRWXU)
+				dirname = fnameList[:i]
+				os.mkdir("".join(dirname), stat.S_IRWXU)
+				print "Creating " + "".join(dirname) + "..."
 				fnameList[i] = '/'
 		
-		print "Extracting" + "".join(fnameList) + "..."
+		print "Extracting " + "".join(fnameList) + "..."
 		#get file size
 		fsize = struct.unpack('I', pfile.read(uint32_t_size))[0]
 		fsize = fsize ^ decryptState
@@ -100,14 +102,16 @@ def extractAll(fname):
 			close(pfile)
 			sys.exit(-1)
 		
+		idx = 0
 		#read and decrypt file
-		for idx in range(0, fsize):
+		while idx != fsize:
 			c = pfile.read(char_size)
-			xorValue = int(decryptState)[idx & 3]
-			c = c ^ xorValue
+			xorValue = str(decryptState)[(idx & 3)]
+			c = chr(ord(c) ^ ord(xorValue))
 			outFile.write(c)
 			if (idx & 3) == 3:
 				advanceDecryptor()
+			idx += 1
 		outFile.close()
 		
 		# restore the decryptor state
