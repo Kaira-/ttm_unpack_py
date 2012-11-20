@@ -39,7 +39,7 @@ def advanceDecryptor():
 def extractAll(fname):
 	global decryptState
 	pfile = open(fname, "rb")
-	#uint32_t is has size of 4 bytes
+	#uint32_t has size of 4 bytes
 	uint32_t_size = 4
 	sig = struct.unpack('i', pfile.read(uint32_t_size))[0]
 	if sig != 1397966674:
@@ -61,7 +61,6 @@ def extractAll(fname):
 			break
 		
 		fnameLen = fnameLen ^ decryptState
-		print decryptState
 		advanceDecryptor()
 
 		#read and decrypt the filename
