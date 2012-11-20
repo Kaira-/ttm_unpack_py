@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-#
 # ttm_unpack_py is a python-port of ttm_unpack by David Gow.
 
 # ttm_unpack_py is an unpacker for the game "To the Moon"'s datafiles
@@ -31,7 +30,6 @@ import sys
 import os
 import stat
 import struct
-from UserString import MutableString
 
 decryptState = 0xdeadcafe;
 
@@ -125,7 +123,6 @@ def extractAll(fname):
 	print "Extracted " + numfiles + " files!"
 		
 def main(argv):
-	fname = MutableString()
 	fname = "To the Moon.rgssad"
 	if len(argv) > 1:
 		fname = argv[1]
