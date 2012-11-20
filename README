@@ -1,0 +1,5 @@
+To use ttm_unpack_py:
+
+cd <path to "To the Moon">
+	python ttm_unpack.py [optional packname]
+	mv To\ the\ Moon.rgssad To\ the Moon.rgssad.old
