@@ -28,20 +28,25 @@ import io
 import sys
 import os
 import stat
+import struct
 
 decryptState = 0xdeadcafe;
 
 def advanceDecryptor():
+	global decryptState
 	decryptState = decryptState * 7 + 3
 
-def extractAll(pfile):
+def extractAll(fname):
+	global decryptState
+	pfile = open(fname, "rb")
 	#uint32_t is has size of 4 bytes
 	uint32_t_size = 4
-	sig = ord(pfile.read(uint32_t_size))
+	sig = struct.unpack('i', pfile.read(uint32_t_size))[0]
 	if sig != 1397966674:
 		print "Error: not a valid 'To the Moon' datafile"
 		sys.exit(-1)
-	sig = ord(pfile.read(uint32_t_size))
+	
+	sig = struct.unpack('i', pfile.read(uint32_t_size))[0]
 	if sig != 16794689:
 		print "Error: not a valid 'To the Moon' datafile"
 		sys.exit(-1)
@@ -49,17 +54,19 @@ def extractAll(pfile):
 	numfiles = 0
 
 	while True:
-		fnameLen = ord(pfile.read(uint32_t_size))
+		#the following line produces faulty results for some reason
+		fnameLen = struct.unpack('i', pfile.read(uint32_t_size))[0]
 		#check for end of file
-		if fnamelen == "" or fnamelen == 0:
+		if fnameLen == "" or fnameLen == 0:
 			break
 		
 		fnameLen = fnameLen ^ decryptState
+		print decryptState
 		advanceDecryptor()
 
 		#read and decrypt the filename
 		char_size = 1
-		fname = pfile.read(char_size * fnameLen)
+		fname = struct.unpack('s', pfile.read(char_size * fnameLen))[0]
 		
 		for i in range(0, fnameLen):
 			fname[i] = fname[i] ^ (decryptState & 0xFF)
@@ -73,7 +80,7 @@ def extractAll(pfile):
 		
 		print "Extracting" + fname + "..."
 		#get file size
-		fsize = ord(pfile.read(uint32_t_size))
+		fsize = struct.unpack('i', pfile.read(uint32_t_size))[0]
 		fsize = fsize ^ decryptState
 		advanceDecryptor()
 
@@ -83,7 +90,7 @@ def extractAll(pfile):
 		try:
 			outFile = open(fname, "wb")
 		except IOError:
-			print "Error, could not create " + fname "."
+			print "Error, could not create " + fname + "."
 			print "Check that you have write permissions to the current directory"
 			print "Extraction will now halt"
 			close(pfile)
@@ -92,7 +99,7 @@ def extractAll(pfile):
 		#read and decrypt file
 		for idx in range(0, fsize):
 			c = pfile.read(char_size)
-			xorValue = ord(decryptState)[idx & 3]
+			xorValue = int(decryptState)[idx & 3]
 			c = c ^ xorValue
 			outFile.write(c)
 			if (idx & 3) == 3:
@@ -104,15 +111,14 @@ def extractAll(pfile):
 		# to make sure the game has fast random-access
 		# to packed files
 		decryptState = oldDecryptState
-		numfiles++
-	print "Extracted " + numfiles " files!"
+		numfiles = numfiles + 1
+	print "Extracted " + numfiles + " files!"
 		
 def main(argv):
 	fname = "To the Moon.rgssad"
 	if len(argv) > 1:
 		fname = argv[1]
-	pfile = open(fname, "rb")
-	extractAll(pfile)
+	extractAll(fname)
 	close(pfile)
 
 if __name__ == "__main__":
