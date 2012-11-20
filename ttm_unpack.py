@@ -32,7 +32,6 @@ import os
 import stat
 import struct
 from array import array
-from UserString import MutableString
 
 max_int = 4294967295
 decryptState = array("I") 
@@ -140,7 +139,6 @@ def extractAll(fname):
 	print "Extracted " + numfiles + " files!"
 		
 def main(argv):
-	fname = MutableString()
 	fname = "To the Moon.rgssad"
 	if len(argv) > 1:
 		fname = argv[1]
