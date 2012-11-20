@@ -62,12 +62,11 @@ def extractAll(fname):
 	decryptState.append(decryptState[0])
 
 	while True:
-		#the following line produces faulty results for some reason
-		fnameLen = struct.unpack('I', pfile.read(uint32_t_size))[0]
-		#check for end of file
-		if fnameLen == "" or fnameLen == 0:
-			break
-		
+		readData = pfile.read(uint32_t_size)
+		if len(readData) == 0:
+			break #EOF reached
+		fnameLen = struct.unpack('I', readData)[0]
+
 		#since fnameLen is supposed to be unsigned, let's do abs magic
 		fnameLen = abs(fnameLen)
 		fnameLen = fnameLen ^ decryptState[0]
@@ -87,8 +86,9 @@ def extractAll(fname):
 			#hack to mkdir everything
 			if fnameList[i] == '\\':
 				dirname = fnameList[:i]
-				os.mkdir("".join(dirname), stat.S_IRWXU)
-				print "Creating " + "".join(dirname) + "..."
+				if not os.path.exists("".join(dirname)):
+					os.mkdir("".join(dirname), stat.S_IRWXU)
+					print "Creating " + "".join(dirname) + "..."
 				fnameList[i] = '/'
 		
 		print "Extracting " + "".join(fnameList) + "..."
@@ -114,7 +114,7 @@ def extractAll(fname):
 		#read and decrypt file
 		while idx != fsize:
 			c = pfile.read(char_size)
-			binary = bin(decryptState[0])[2:]
+			binary = bin(decryptState[0])[2:].zfill(32)
 			binvalues = []
 			binvalues.append(binary[0:7])
 			binvalues.append(binary[8:15])
@@ -124,9 +124,7 @@ def extractAll(fname):
 			c = chr(ord(c) ^ xorValue)
 			outFile.write(c)
 			if (idx & 3) == 3:
-				print "Advancing Decryptor..."
 				advanceDecryptor()
-			print "Next Step... idx="+str(idx)+" fsize="+str(fsize)
 			idx += 1
 		outFile.close()
 		
@@ -136,14 +134,14 @@ def extractAll(fname):
 		# to packed files
 		decryptState[0] = decryptState[1]
 		numfiles = numfiles + 1
-	print "Extracted " + numfiles + " files!"
-		
+	pfile.close()
+	print "Extracted " + str(numfiles) + " files!"
+
 def main(argv):
 	fname = "To the Moon.rgssad"
 	if len(argv) > 1:
 		fname = argv[1]
 	extractAll(fname)
-	close(pfile)
 
 if __name__ == "__main__":
 	main(sys.argv)
