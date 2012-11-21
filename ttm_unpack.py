@@ -114,13 +114,10 @@ def extractAll(fname):
 		#read and decrypt file
 		while idx != fsize:
 			c = pfile.read(char_size)
-			binary = bin(decryptState[0])[2:].zfill(32)
-			binvalues = []
-			binvalues.append(binary[0:7])
-			binvalues.append(binary[8:15])
-			binvalues.append(binary[16:23])
-			binvalues.append(binary[24:31])
-			xorValue = abs(int(binvalues[idx&3],2))
+			hexadec = hex(decryptState[0]).rstrip("L").lstrip("0x").zfill(8)
+			# We need to do some order flipping here because they made me do it ;_; it was horrible
+			hexvalues = [hexadec[i:i+2] for i in xrange(0, len(hexadec), 2)]
+			xorValue = int(hexvalues[3-idx&3],16)
 			c = chr(ord(c) ^ xorValue)
 			outFile.write(c)
 			if (idx & 3) == 3:
