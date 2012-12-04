@@ -114,10 +114,8 @@ def extractAll(fname):
 		#read and decrypt file
 		while idx != fsize:
 			c = pfile.read(char_size)
-			hexadec = hex(decryptState[0]).rstrip("L").lstrip("0x").zfill(8)
-			# We need to do some order flipping here because they made me do it ;_; it was horrible
-			hexvalues = [hexadec[i:i+2] for i in xrange(0, len(hexadec), 2)]
-			xorValue = int(hexvalues[3-idx&3],16)
+			# Get the 'idx'th byte from decryptState (little endian)
+			xorValue = (decryptState[0] >> (idx & 3) * 8) & 0xFF
 			c = chr(ord(c) ^ xorValue)
 			outFile.write(c)
 			if (idx & 3) == 3:
